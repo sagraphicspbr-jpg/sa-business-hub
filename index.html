@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>SA Business Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #F7F7F7;
+            color: #1A1A1A;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .header {
+            background: #1A1A1A;
+            color: white;
+            margin: -20px -20px 20px -20px;
+            padding: 20px;
+            padding-top: 50px;
+            border-bottom: 3px solid #FF6A00;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-left: 4px solid #FF6A00;
+            padding-left: 12px;
+        }
+
+        /* Forms & Inputs */
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: white;
+        }
+
+        button {
+            background: #FF6A00;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        button.secondary {
+            background: #1A1A1A;
+        }
+
+        button.danger {
+            background: #ccc;
+            color: #333;
+        }
+
+        /* Status badges */
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-pending { background: #FFE5CC; color: #FF6A00; }
+        .status-progress { background: #FFE5CC; color: #FF6A00; }
+        .status-completed { background: #E0F7E8; color: #2E7D32; }
+
+        /* Orders list */
+        .order-item {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 12px 0;
+        }
+
+        .order-item:last-child { border: none; }
+
+        .order-title {
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .order-detail {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 6px;
+            border-radius: 60px;
+            border: 1px solid #eee;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            background: transparent;
+            color: #666;
+            margin: 0;
+        }
+
+        .tab.active {
+            background: #FF6A00;
+            color: white;
+        }
+
+        /* Login screen */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1A1A1A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 30px 20px;
+            margin: 20px;
+            border-radius: 32px;
+            text-align: center;
+            max-width: 350px;
+        }
+
+        /* Utility */
+        .hidden { display: none; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .mt-2 { margin-top: 8px; }
+        .mb-1 { margin-bottom: 4px; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+    <div class="login-box">
+        <h2 style="margin-bottom: 20px;">SA Business Hub</h2>
+        <p style="margin-bottom: 20px; color: #666;">Enter PIN to access</p>
+        <input type="password" id="pinInput" placeholder="Enter PIN" maxlength="6" style="text-align: center;">
+        <button id="loginBtn">Access Portal</button>
+        <p style="margin-top: 15px; font-size: 12px; color: #999;">Default PIN: 1234</p>
+    </div>
+</div>
+
+<div id="appContent" class="hidden">
+    <div class="header">
+        <h1>📋 SA Business Hub</h1>
+        <p>Orders · Projects · Activity</p>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="orders">Print Orders</div>
+        <div class="tab" data-tab="projects">Design Projects</div>
+        <div class="tab" data-tab="activity">Activity Log</div>
+        <div class="tab" data-tab="add">➕ New</div>
+    </div>
+
+    <!-- Orders Tab -->
+    <div id="ordersTab">
+        <div class="card">
+            <div class="card-title">📦 Recent Print Orders</div>
+            <div id="ordersList">Loading orders...</div>
+        </div>
+    </div>
+
+    <!-- Projects Tab -->
+    <div id="projectsTab" class="hidden">
+        <div class="card">
+            <div class="card-title">🎨 Design Projects</div>
+            <div id="projectsList">Loading projects...</div>
+        </div>
+    </div>
+
+    <!-- Activity Tab -->
+    <div id="activityTab" class="hidden">
+        <div class="card">
+            <div class="card-title">📝 Activity Log</div>
+            <div id="activityList">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Add New Tab -->
+    <div id="addTab" class="hidden">
+        <div class="card">
+            <div class="card-title">➕ Create New</div>
+            <select id="addType">
+                <option value="order">Print Order</option>
+                <option value="project">Design Project</option>
+            </select>
+            <div id="addFormContainer">
+                <!-- Dynamic form appears here -->
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+        SA Associates & SA Graphics · Operations Portal
+    </div>
+</div>
+
+<script>
+    // ========= CONFIGURATION =========
+    const API_KEY = 'AIzaSyBVoFnmxtZZ_JOYG8qvXfnAtMcdlxUiDaM';
+    const SHEET_ID = '1BLmbJ2AXpB0f1qAHeH8kY-A1E655yJrvhFlzTWnA9DM';
+    const RANGE_ORDERS = 'Orders!A:I';
+    const RANGE_PROJECTS = 'Projects!A:H';
+    const RANGE_ACTIVITY = 'Activity!A:E';
+    
+    let currentPIN = '1234';
+    let isLoggedIn = false;
+
+    // Helper: Fetch sheet data
+    async function fetchSheet(range) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.values || [];
+    }
+
+    // Helper: Add activity log (NOTE: Google Sheets API v4 doesn't support append without OAuth.
+    // For demo + free usage, we'll store activity in localStorage + display. 
+    // But your sheet will still show orders/projects manually added via portal.
+    // For true append, you'd need OAuth. I'm keeping it simple & working.)
+    function addActivity(action, details) {
+        let logs = JSON.parse(localStorage.getItem('sa_activity') || '[]');
+        logs.unshift({
+            timestamp: new Date().toLocaleString(),
+            user: 'Admin',
+            action: action,
+            details: details
+        });
+        logs = logs.slice(0, 100);
+        localStorage.setItem('sa_activity', JSON.stringify(logs));
+        renderActivityLog();
+    }
+
+    // Render Orders
+    async function renderOrders() {
+        const container = document.getElementById('ordersList');
+        const rows = await fetchSheet(RANGE_ORDERS);
+        if (!rows || rows.length < 2) {
+            container.innerHTML = '<p>No orders found. Create your first order!</p>';
+            return;
+        }
+        const headers = rows[0];
+        const orders = rows.slice(1);
+        let html = '';
+        orders.forEach(order => {
+            const id = order[0] || '-';
+            const customer = order[2] || '-';
+            const details = order[3] || '-';
+            const status = order[5] || 'Pending';
+            let statusClass = 'status-pending';
+            if (status.toLowerCase() === 'completed') statusClass = 'status-completed';
+            if (status.toLowerCase().includes('progress')) statusClass = 'status-progress';
+            html += `
+                <div class="order-item">
+                    <div class="order-title">
+                        <span>${customer}</span>
+                        <span class="status ${statusClass}">${status}</span>
+                    </div>
+                    <div class="order-detail">📄 ${details}</div>
+                    <div class="order-detail">🆔 ${id}</div>
+                    <div class="flex-between mt-2">
+                        <select class="status-update" data-id="${id}" data-type="order" style="width: auto; margin:0; padding:6px;">
+                            <option ${status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option ${status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option ${status === 'Completed' ? 'selected' : ''}>Completed</option>
+                        </select>
+                        <button class="update-status-btn" data-id="${id}" data-type="order" style="width: auto; padding:6px 12px; margin:0;">Update</button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+
+        // Attach event listeners for status updates
+        document.querySelectorAll('.update-status-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = btn.dataset.id;
+                const type = btn.dataset.type;
+                const select = btn.parentElement.querySelector('.status-update');
+                const newStatus = select.value;
+                alert(`Demo: Status for ${id} updated to ${newStatus}. In full version, this would save to Google Sheet.`);
+                addActivity(`Updated ${type} ${id}`, `Status → ${newStatus}`);
+                renderOrders();
+            });
+        });
+    }
+
+    // Render Projects
+    async function renderProjects() {
+        const container = document.getElementById('projectsList');
+        const rows = await fetchSheet(RANGE_PROJECTS);
+        if (!rows || rows.length < 2) {
+            container.innerHTML = '<p>No design projects found.</p>';
+            return;
+        }
+        const projects = rows.slice(1);
+        let html = '';
+        projects.forEach(proj => {
+            const id = proj[0] || '-';
+            const client = proj[2] || '-';
+            const name = proj[3] || '-';
+            const status = proj[4] || 'Briefing';
+            let statusClass = 'status-pending';
+            if (status === 'Final') statusClass = 'status-completed';
+            html += `
+                <div class="order-item">
+                    <div class="order-title">
+                        <span>${client} - ${name}</span>
+                        <span class="status ${statusClass}">${status}</span>
+                    </div>
+                    <div class="order-detail">🆔 ${id}</div>
+                    <div class="flex-between mt-2">
+                        <select class="project-status-update" data-id="${id}" style="width: auto; margin:0; padding:6px;">
+                            <option ${status === 'Briefing' ? 'selected' : ''}>Briefing</option>
+                            <option ${status === 'Design' ? 'selected' : ''}>Design</option>
+                            <option ${status === 'Revision' ? 'selected' : ''}>Revision</option>
+                            <option ${status === 'Final' ? 'selected' : ''}>Final</option>
+                        </select>
+                        <button class="update-project-btn" data-id="${id}" style="width: auto; padding:6px 12px; margin:0;">Update</button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+
+        document.querySelectorAll('.update-project-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const select = btn.parentElement.querySelector('.project-status-update');
+                const newStatus = select.value;
+                alert(`Demo: Project ${id} updated to ${newStatus}.`);
+                addActivity(`Updated project ${id}`, `Status → ${newStatus}`);
+            });
+        });
+    }
+
+    function renderActivityLog() {
+        const container = document.getElementById('activityList');
+        const logs = JSON.parse(localStorage.getItem('sa_activity') || '[]');
+        if (logs.length === 0) {
+            container.innerHTML = '<p>No activity yet.</p>';
+            return;
+        }
+        let html = '';
+        logs.forEach(log => {
+            html += `
+                <div class="order-item">
+                    <div class="order-title">⏱️ ${log.timestamp}</div>
+                    <div><strong>${log.user}</strong> · ${log.action}</div>
+                    <div class="order-detail">${log.details}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    // Dynamic form for adding new order/project
+    function renderAddForm(type) {
+        const container = document.getElementById('addFormContainer');
+        if (type === 'order') {
+            container.innerHTML = `
+                <input type="text" id="orderCustomer" placeholder="Customer Name">
+                <input type="text" id="orderDetails" placeholder="Order Details (e.g. 500 flyers)">
+                <input type="text" id="orderQty" placeholder="Quantity">
+                <input type="date" id="orderDue">
+                <button id="submitOrderBtn">➕ Create Print Order</button>
+            `;
+            document.getElementById('submitOrderBtn')?.addEventListener('click', () => {
+                const customer = document.getElementById('orderCustomer').value;
+                const details = document.getElementById('orderDetails').value;
+                alert(`Demo: Order created for ${customer} - ${details}. In full live version, this appends to your Google Sheet.`);
+                addActivity('Created print order', `${customer} - ${details}`);
+                renderOrders();
+            });
+        } else {
+            container.innerHTML = `
+                <input type="text" id="projectClient" placeholder="Client Name">
+                <input type="text" id="projectName" placeholder="Project Name (e.g. Logo for Bakery)">
+                <input type="date" id="projectDeadline">
+                <button id="submitProjectBtn">🎨 Create Design Project</button>
+            `;
+            document.getElementById('submitProjectBtn')?.addEventListener('click', () => {
+                const client = document.getElementById('projectClient').value;
+                const name = document.getElementById('projectName').value;
+                alert(`Demo: Project created for ${client} - ${name}.`);
+                addActivity('Created design project', `${client} - ${name}`);
+                renderProjects();
+            });
+        }
+    }
+
+    // Tab switching
+    function switchTab(tabId) {
+        document.getElementById('ordersTab').classList.add('hidden');
+        document.getElementById('projectsTab').classList.add('hidden');
+        document.getElementById('activityTab').classList.add('hidden');
+        document.getElementById('addTab').classList.add('hidden');
+        if (tabId === 'orders') document.getElementById('ordersTab').classList.remove('hidden');
+        if (tabId === 'projects') document.getElementById('projectsTab').classList.remove('hidden');
+        if (tabId === 'activity') document.getElementById('activityTab').classList.remove('hidden');
+        if (tabId === 'add') document.getElementById('addTab').classList.remove('hidden');
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.tab === tabId) tab.classList.add('active');
+        });
+        
+        if (tabId === 'orders') renderOrders();
+        if (tabId === 'projects') renderProjects();
+        if (tabId === 'activity') renderActivityLog();
+        if (tabId === 'add') {
+            const currentType = document.getElementById('addType').value;
+            renderAddForm(currentType);
+        }
+    }
+
+    // Login logic
+    document.getElementById('loginBtn').addEventListener('click', () => {
+        const entered = document.getElementById('pinInput').value;
+        if (entered === currentPIN) {
+            isLoggedIn = true;
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appContent').classList.remove('hidden');
+            switchTab('orders');
+            addActivity('Login', 'User logged in');
+        } else {
+            alert('Wrong PIN. Default is 1234');
+        }
+    });
+
+    // Event listeners for tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTab(tab.dataset.tab);
+        });
+    });
+    
+    document.getElementById('addType').addEventListener('change', (e) => {
+        renderAddForm(e.target.value);
+    });
+
+    // Set default sample data in localStorage activity
+    if (!localStorage.getItem('sa_activity')) {
+        localStorage.setItem('sa_activity', JSON.stringify([
+            { timestamp: new Date().toLocaleString(), user: 'System', action: 'Portal ready', details: 'Welcome to SA Business Hub' }
+        ]));
+    }
+    
+    // Note: This demo reads from your public Google Sheet but cannot write to it without OAuth.
+    // For a completely free & working portal with read/write, consider Glide or similar.
+    // This gives you the full experience UI, login, activity, status updates (demo mode).
+    console.log('Portal ready. Use PIN 1234');
+</script>
+</body>
+</html>
