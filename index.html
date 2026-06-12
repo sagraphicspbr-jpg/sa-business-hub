@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>SA PrintOps - Print Shop Management</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -17,6 +23,57 @@
             color: #1A1A1A;
         }
 
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1A1A1A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 32px;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+        }
+
+        .login-box h2 {
+            color: #FF6A00;
+            margin-bottom: 20px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .login-box button {
+            background: #FF6A00;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* Main App Layout */
         .app-container {
             display: flex;
             min-height: 100vh;
@@ -73,10 +130,6 @@
             border-left: 3px solid white;
         }
 
-        .nav-item span:first-child {
-            font-size: 1.2rem;
-        }
-
         .main-content {
             margin-left: 260px;
             flex: 1;
@@ -128,7 +181,6 @@
             font-size: 0.8rem;
             color: #666;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .stat-value {
@@ -154,10 +206,6 @@
             gap: 12px;
         }
 
-        .card-header h3 {
-            font-size: 1.2rem;
-        }
-
         .btn-primary {
             background: #FF6A00;
             color: white;
@@ -165,6 +213,15 @@
             padding: 10px 20px;
             border-radius: 30px;
             font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #1A1A1A;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
             cursor: pointer;
         }
 
@@ -202,6 +259,10 @@
         .stage-printing { background: #E8F5E9; color: #2E7D32; }
         .stage-qc { background: #F3E5F5; color: #6A1B9A; }
         .stage-delivery { background: #E0F7E8; color: #1B5E20; }
+        .stage-brief { background: #E3F2FD; color: #1565C0; }
+        .stage-moodboard { background: #FFF3E0; color: #E65100; }
+        .stage-revision { background: #F3E5F5; color: #6A1B9A; }
+        .stage-final { background: #E0F7E8; color: #1B5E20; }
 
         .payment-paid { color: #2E7D32; font-weight: 600; }
         .payment-unpaid { color: #D32F2F; font-weight: 600; }
@@ -239,6 +300,8 @@
             padding: 24px;
             max-width: 500px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .form-group {
@@ -249,35 +312,15 @@
             display: block;
             margin-bottom: 6px;
             font-weight: 500;
+            font-size: 0.85rem;
         }
 
-        .form-group input, .form-group select {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 8px;
-        }
-
-        .login-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #1A1A1A;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-        }
-
-        .login-box {
-            background: white;
-            padding: 40px 30px;
-            border-radius: 32px;
-            text-align: center;
-            max-width: 350px;
-            width: 90%;
+            font-family: inherit;
         }
 
         .hidden {
@@ -287,45 +330,102 @@
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .sidebar.open {
+                transform: translateX(0);
             }
             .main-content {
                 margin-left: 0;
             }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            th, td {
+                font-size: 0.7rem;
+                padding: 8px 4px;
+            }
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: #FF6A00;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-right: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+
+        .customer-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .customer-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .customer-item:hover {
+            background: #f5f5f5;
         }
     </style>
 </head>
 <body>
 
+<!-- Login Screen -->
 <div id="loginScreen" class="login-screen">
     <div class="login-box">
-        <h2 style="margin-bottom: 20px; color: #FF6A00;">SA PrintOps</h2>
-        <p style="margin-bottom: 20px;">Print Shop Management</p>
-        <input type="password" id="pinInput" placeholder="Enter PIN" maxlength="6" style="width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ddd;">
-        <button id="loginBtn" style="background: #FF6A00; color: white; border: none; padding: 12px; width: 100%; border-radius: 30px; font-weight: 600;">Access Portal</button>
-        <p style="margin-top: 16px; font-size: 12px;">Default PIN: 1234</p>
+        <h2>SA PrintOps</h2>
+        <p style="margin-bottom: 20px; color: #666;">Print Shop Management</p>
+        <select id="userSelect" style="width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ddd;">
+            <option value="admin">Admin (Owner)</option>
+            <option value="cousin">Cousin (Manager)</option>
+        </select>
+        <input type="password" id="pinInput" placeholder="Enter PIN" maxlength="6">
+        <button id="loginBtn">Access Portal</button>
+        <p style="margin-top: 16px; font-size: 12px; color: #999;">Admin PIN: 1234 | Cousin PIN: 5678</p>
     </div>
 </div>
 
+<!-- Main App -->
 <div id="appContent" class="hidden">
     <div class="app-container">
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h2>SA PrintOps</h2>
                 <p>by SA Graphics & Associates</p>
             </div>
             <div class="nav-menu">
                 <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
-                <div class="nav-item" data-page="orders">📦 Orders</div>
+                <div class="nav-item" data-page="printOrders">🖨️ Print Orders</div>
+                <div class="nav-item" data-page="designProjects">🎨 Design Projects</div>
+                <div class="nav-item" data-page="customers">👥 Customers</div>
                 <div class="nav-item" data-page="activity">📝 Activity</div>
             </div>
         </div>
 
         <div class="main-content">
             <div class="top-bar">
-                <h1 class="page-title" id="pageTitle">Dashboard</h1>
-                <button class="logout-btn" id="logoutBtn">Exit</button>
+                <div style="display: flex; align-items: center;">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="userNameDisplay">Admin</span>
+                    <button class="logout-btn" id="logoutBtn">Exit</button>
+                </div>
             </div>
 
+            <!-- Dashboard Page -->
             <div id="dashboardPage">
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-label">Active Orders</div><div class="stat-value" id="activeOrders">0</div></div>
@@ -336,36 +436,65 @@
 
                 <div class="orders-card">
                     <div class="card-header">
-                        <h3>Recent Orders</h3>
-                        <button class="btn-primary" id="openOrderModalBtn">+ New Order</button>
+                        <h3>📋 Recent Print Orders</h3>
+                        <button class="btn-primary" id="openPrintOrderModalBtn">+ New Order</button>
                     </div>
                     <div class="orders-table">
-                        <table>
-                            <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Stage</th><th>Due Date</th><th>Payment</th><th>Actions</th></tr></thead>
-                            <tbody id="ordersTableBody"></tbody>
+                        <table id="recentOrdersTable">
+                            <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Stage</th><th>Amount</th><th>Payment</th><th>Actions</th></tr></thead>
+                            <tbody id="recentOrdersBody"><tr><td colspan="7">Loading...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <div id="ordersPage" class="hidden">
+            <!-- Print Orders Page -->
+            <div id="printOrdersPage" class="hidden">
                 <div class="orders-card">
                     <div class="card-header">
-                        <h3>All Orders</h3>
-                        <button class="btn-primary" id="openOrderModalBtn2">+ New Order</button>
+                        <h3>🖨️ All Print Orders</h3>
+                        <button class="btn-primary" id="openPrintOrderModalBtn2">+ New Order</button>
                     </div>
                     <div class="orders-table">
-                        <table>
-                            <thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Stage</th><th>Due Date</th><th>Payment</th><th>Actions</th></tr></thead>
-                            <tbody id="allOrdersBody"></tbody>
+                        <table id="allOrdersTable">
+                            <thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Stage</th><th>Due Date</th><th>Amount</th><th>Payment</th><th>Actions</th></tr></thead>
+                            <tbody id="allOrdersBody"><tr><td colspan="9">Loading...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Design Projects Page -->
+            <div id="designProjectsPage" class="hidden">
+                <div class="orders-card">
+                    <div class="card-header">
+                        <h3>🎨 Design Projects</h3>
+                        <button class="btn-primary" id="openProjectModalBtn">+ New Project</button>
+                    </div>
+                    <div class="orders-table">
+                        <table id="projectsTable">
+                            <thead><tr><th>Project ID</th><th>Client</th><th>Project Name</th><th>Stage</th><th>Deadline</th><th>Amount</th><th>Payment</th><th>Actions</th></tr></thead>
+                            <tbody id="projectsBody"><tr><td colspan="8">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Page -->
+            <div id="customersPage" class="hidden">
+                <div class="orders-card">
+                    <div class="card-header">
+                        <h3>👥 Customer CRM</h3>
+                        <button class="btn-primary" id="openCustomerModalBtn">+ New Customer</button>
+                    </div>
+                    <div id="customerList" class="customer-list"></div>
+                </div>
+            </div>
+
+            <!-- Activity Page -->
             <div id="activityPage" class="hidden">
                 <div class="orders-card">
-                    <div class="card-header"><h3>Activity Log</h3></div>
+                    <div class="card-header"><h3>📝 Activity Log</h3></div>
                     <div id="activityList" style="max-height: 500px; overflow-y: auto;"></div>
                 </div>
             </div>
@@ -373,173 +502,496 @@
     </div>
 </div>
 
+<!-- Print Order Modal -->
 <div id="orderModal" class="modal">
     <div class="modal-content">
-        <div class="card-header"><h3>New Order</h3><button class="icon-btn" onclick="closeOrderModal()">✕</button></div>
-        <div class="form-group"><label>Customer</label><input type="text" id="orderCustomer" placeholder="e.g. Sharma Traders"></div>
-        <div class="form-group"><label>Items</label><input type="text" id="orderItems" placeholder="e.g. Flex Banner 6x4"></div>
-        <div class="form-group"><label>Amount (₹)</label><input type="number" id="orderAmount" placeholder="e.g. 2400"></div>
+        <div class="card-header"><h3>New Print Order</h3><button class="icon-btn" onclick="closeModal('orderModal')">✕</button></div>
+        <div class="form-group"><label>Customer Name</label><input type="text" id="orderCustomer" placeholder="e.g. Sharma Traders"></div>
+        <div class="form-group"><label>Contact Number</label><input type="text" id="orderContact" placeholder="9876543210"></div>
+        <div class="form-group"><label>Order Details</label><textarea id="orderDetails" placeholder="e.g. 500 flyers, A5, glossy" rows="2"></textarea></div>
+        <div class="form-group"><label>Quantity</label><input type="text" id="orderQuantity" placeholder="e.g. 500"></div>
+        <div class="form-group"><label>Amount (₹)</label><input type="number" id="orderAmount" placeholder="2400"></div>
+        <div class="form-group"><label>Advance Paid (₹)</label><input type="number" id="orderAdvance" value="0"></div>
         <div class="form-group"><label>Due Date</label><input type="date" id="orderDue"></div>
+        <div class="form-group"><label>File Link (Google Drive)</label><input type="url" id="orderFileLink" placeholder="https://drive.google.com/..."></div>
         <button id="submitOrderBtn" class="btn-primary" style="width:100%">Create Order</button>
     </div>
 </div>
 
+<!-- Project Modal -->
+<div id="projectModal" class="modal">
+    <div class="modal-content">
+        <div class="card-header"><h3>New Design Project</h3><button class="icon-btn" onclick="closeModal('projectModal')">✕</button></div>
+        <div class="form-group"><label>Client Name</label><input type="text" id="projectClient"></div>
+        <div class="form-group"><label>Contact Number</label><input type="text" id="projectContact"></div>
+        <div class="form-group"><label>Project Name</label><input type="text" id="projectName" placeholder="e.g. Logo + Brand Guide"></div>
+        <div class="form-group"><label>Project Type</label>
+            <select id="projectType"><option>Logo Design</option><option>Brand Guide</option><option>Social Media Kit</option><option>Website Design</option><option>Shopify Store</option></select>
+        </div>
+        <div class="form-group"><label>Amount (₹/AED)</label><input type="number" id="projectAmount"></div>
+        <div class="form-group"><label>Advance Paid</label><input type="number" id="projectAdvance" value="0"></div>
+        <div class="form-group"><label>Deadline</label><input type="date" id="projectDeadline"></div>
+        <div class="form-group"><label>Deliverable Link</label><input type="url" id="projectFileLink" placeholder="https://drive.google.com/..."></div>
+        <button id="submitProjectBtn" class="btn-primary" style="width:100%">Create Project</button>
+    </div>
+</div>
+
+<!-- Customer Modal -->
+<div id="customerModal" class="modal">
+    <div class="modal-content">
+        <div class="card-header"><h3>New Customer</h3><button class="icon-btn" onclick="closeModal('customerModal')">✕</button></div>
+        <div class="form-group"><label>Customer/Client Name</label><input type="text" id="customerName"></div>
+        <div class="form-group"><label>Contact Number</label><input type="text" id="customerContact"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="customerEmail"></div>
+        <div class="form-group"><label>Address</label><textarea id="customerAddress" rows="2"></textarea></div>
+        <button id="submitCustomerBtn" class="btn-primary" style="width:100%">Save Customer</button>
+    </div>
+</div>
+
 <script>
-    let orders = [
-        { id: 'ORD-001', date: '2026-06-10', customer: 'Sharma Traders', items: 'Flex Banner 6x4', stage: 'Printing', dueDate: '2026-06-20', payment: 'Unpaid' },
-        { id: 'ORD-002', date: '2026-06-11', customer: 'Patel Enterprises', items: 'Business Cards', stage: 'Design', dueDate: '2026-06-18', payment: 'Partial' },
-        { id: 'ORD-003', date: '2026-06-12', customer: 'City Hospital', items: 'Standees x3', stage: 'Delivery', dueDate: '2026-06-15', payment: 'Paid' },
-        { id: 'ORD-004', date: '2026-06-13', customer: 'Raj Motors', items: 'Vehicle Wrap', stage: 'Received', dueDate: '2026-06-22', payment: 'Unpaid' }
-    ];
+    // ========= FIREBASE CONFIGURATION =========
+    const firebaseConfig = {
+        apiKey: "AIzaSyBU6OshJgaDJu_16_8fJ4eosdVZa1oIw70",
+        authDomain: "sa-business-hub.firebaseapp.com",
+        projectId: "sa-business-hub",
+        storageBucket: "sa-business-hub.firebasestorage.app",
+        messagingSenderId: "1084160597114",
+        appId: "1:1084160597114:web:3f490978352167e4812fc3"
+    };
     
-    let activity = [{ timestamp: '2026-06-13 10:00', action: 'Portal launched', user: 'Admin' }];
-
-    function saveData() {
-        localStorage.setItem('sa_orders', JSON.stringify(orders));
-        localStorage.setItem('sa_activity', JSON.stringify(activity));
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    // ========= APP STATE =========
+    let currentUser = null;
+    let currentUserRole = null;
+    let ordersListener = null;
+    let projectsListener = null;
+    let customersListener = null;
+    let activityListener = null;
+    
+    const PIN_MAP = {
+        admin: '1234',
+        cousin: '5678'
+    };
+    
+    const USER_NAMES = {
+        admin: 'Admin (Owner)',
+        cousin: 'Cousin (Manager)'
+    };
+    
+    const PRINT_STAGES = ['Received', 'Design', 'Printing', 'QC', 'Delivery'];
+    const PROJECT_STAGES = ['Brief', 'Mood Board', 'Design', 'Revision', 'Final'];
+    
+    function getStageClass(stage, type = 'print') {
+        const stages = type === 'print' ? PRINT_STAGES : PROJECT_STAGES;
+        const classMap = {
+            'Received': 'stage-received', 'Design': 'stage-design', 'Printing': 'stage-printing',
+            'QC': 'stage-qc', 'Delivery': 'stage-delivery', 'Brief': 'stage-received',
+            'Mood Board': 'stage-moodboard', 'Revision': 'stage-revision', 'Final': 'stage-final'
+        };
+        return classMap[stage] || 'stage-received';
     }
-
-    function loadData() {
-        const savedOrders = localStorage.getItem('sa_orders');
-        const savedActivity = localStorage.getItem('sa_activity');
-        if (savedOrders) orders = JSON.parse(savedOrders);
-        if (savedActivity) activity = JSON.parse(savedActivity);
-    }
-
-    function renderOrders() {
-        const tbody = document.getElementById('ordersTableBody');
-        const allBody = document.getElementById('allOrdersBody');
-        if (!tbody) return;
+    
+    // ========= LOGIN =========
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const userType = document.getElementById('userSelect').value;
+        const pin = document.getElementById('pinInput').value;
         
-        const recent = orders.slice(0, 5);
-        tbody.innerHTML = recent.map(o => getOrderRow(o)).join('');
-        if (allBody) allBody.innerHTML = orders.map(o => getOrderRow(o, true)).join('');
-        updateStats();
+        if (pin === PIN_MAP[userType]) {
+            currentUser = userType;
+            currentUserRole = userType === 'admin' ? 'admin' : 'manager';
+            document.getElementById('userNameDisplay').innerText = USER_NAMES[userType];
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appContent').classList.remove('hidden');
+            
+            // Add activity log
+            await db.collection('activity').add({
+                timestamp: new Date().toISOString(),
+                user: currentUser,
+                action: 'Logged in',
+                details: `${USER_NAMES[userType]} logged in`
+            });
+            
+            // Start real-time listeners
+            setupRealtimeListeners();
+            switchPage('dashboard');
+        } else {
+            alert('Wrong PIN. Admin: 1234 | Cousin: 5678');
+        }
+    });
+    
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await db.collection('activity').add({
+            timestamp: new Date().toISOString(),
+            user: currentUser,
+            action: 'Logged out',
+            details: `${USER_NAMES[currentUser]} logged out`
+        });
+        if (ordersListener) ordersListener();
+        if (projectsListener) projectsListener();
+        if (customersListener) customersListener();
+        if (activityListener) activityListener();
+        currentUser = null;
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('appContent').classList.add('hidden');
+        document.getElementById('pinInput').value = '';
+    });
+    
+    // ========= REAL-TIME LISTENERS =========
+    function setupRealtimeListeners() {
+        // Orders listener
+        ordersListener = db.collection('orders').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+            window.allOrders = [];
+            snapshot.forEach(doc => {
+                window.allOrders.push({ id: doc.id, ...doc.data() });
+            });
+            renderAllOrders();
+            updateDashboardStats();
+        });
+        
+        // Projects listener
+        projectsListener = db.collection('projects').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+            window.allProjects = [];
+            snapshot.forEach(doc => {
+                window.allProjects.push({ id: doc.id, ...doc.data() });
+            });
+            renderAllProjects();
+        });
+        
+        // Customers listener
+        customersListener = db.collection('customers').orderBy('name', 'asc').onSnapshot((snapshot) => {
+            window.allCustomers = [];
+            snapshot.forEach(doc => {
+                window.allCustomers.push({ id: doc.id, ...doc.data() });
+            });
+            renderCustomerList();
+        });
+        
+        // Activity listener (last 50)
+        activityListener = db.collection('activity').orderBy('timestamp', 'desc').limit(50).onSnapshot((snapshot) => {
+            window.allActivities = [];
+            snapshot.forEach(doc => {
+                window.allActivities.push({ id: doc.id, ...doc.data() });
+            });
+            renderActivityLog();
+        });
     }
-
-    function getOrderRow(o, full = false) {
-        const stageClass = `stage-${o.stage.toLowerCase()}`;
-        const paymentClass = `payment-${o.payment.toLowerCase()}`;
-        return `<tr>
-            <td>${o.id}</td>
-            <td>${full ? o.date : ''}</td>
-            <td>${o.customer}</td>
-            <td>${o.items}</td>
-            <td><span class="stage-badge ${stageClass}">${o.stage}</span></td>
-            <td>${o.dueDate}</td>
-            <td class="${paymentClass}">${o.payment}</td>
-            <td class="action-buttons">
-                <button class="icon-btn" onclick="updateStage('${o.id}')">🔄</button>
-                <button class="icon-btn" onclick="updatePayment('${o.id}')">💰</button>
-            </td>
-        </tr>`;
+    
+    // ========= RENDER FUNCTIONS =========
+    function renderAllOrders() {
+        const allBody = document.getElementById('allOrdersBody');
+        const recentBody = document.getElementById('recentOrdersBody');
+        
+        if (!window.allOrders || window.allOrders.length === 0) {
+            const emptyMsg = '<tr><td colspan="9">No orders found. Create your first order!</td></tr>';
+            if (allBody) allBody.innerHTML = emptyMsg;
+            if (recentBody) recentBody.innerHTML = '<tr><td colspan="7">No orders found</td></tr>';
+            return;
+        }
+        
+        // Recent orders (last 5)
+        const recent = window.allOrders.slice(0, 5);
+        if (recentBody) {
+            recentBody.innerHTML = recent.map(o => `
+                <tr>
+                    <td>${o.orderId || 'N/A'}</td>
+                    <td>${o.customerName || '-'}</td>
+                    <td>${o.details || '-'}</td>
+                    <td><span class="stage-badge ${getStageClass(o.stage)}">${o.stage || 'Received'}</span></td>
+                    <td>₹${o.amount || 0}</td>
+                    <td class="payment-${(o.paymentStatus || 'unpaid').toLowerCase()}">${o.paymentStatus || 'Unpaid'}</td>
+                    <td class="action-buttons">
+                        <button class="icon-btn" onclick="updatePrintStage('${o.id}', '${o.stage}')">🔄</button>
+                        <button class="icon-btn" onclick="updatePrintPayment('${o.id}')">💰</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // All orders
+        if (allBody) {
+            allBody.innerHTML = window.allOrders.map(o => `
+                <tr>
+                    <td>${o.orderId || 'N/A'}</td>
+                    <td>${new Date(o.createdAt?.toDate()).toLocaleDateString() || '-'}</td>
+                    <td>${o.customerName || '-'}</td>
+                    <td>${o.details || '-'}</td>
+                    <td><span class="stage-badge ${getStageClass(o.stage)}">${o.stage || 'Received'}</span></td>
+                    <td>${o.dueDate || '-'}</td>
+                    <td>₹${o.amount || 0}</td>
+                    <td class="payment-${(o.paymentStatus || 'unpaid').toLowerCase()}">${o.paymentStatus || 'Unpaid'}</td>
+                    <td class="action-buttons">
+                        <button class="icon-btn" onclick="updatePrintStage('${o.id}', '${o.stage}')">🔄</button>
+                        <button class="icon-btn" onclick="updatePrintPayment('${o.id}')">💰</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
     }
-
-    function updateStats() {
-        const active = orders.filter(o => o.stage !== 'Delivery').length;
-        const completedToday = orders.filter(o => o.date === new Date().toISOString().slice(0,10) && o.stage === 'Delivery').length;
-        const pendingCount = orders.filter(o => o.payment !== 'Paid').length;
+    
+    function renderAllProjects() {
+        const container = document.getElementById('projectsBody');
+        if (!container) return;
+        
+        if (!window.allProjects || window.allProjects.length === 0) {
+            container.innerHTML = '<tr><td colspan="8">No projects found</td></tr>';
+            return;
+        }
+        
+        container.innerHTML = window.allProjects.map(p => `
+            <tr>
+                <td>${p.projectId || 'N/A'}</td>
+                <td>${p.clientName || '-'}</td>
+                <td>${p.projectName || '-'}</td>
+                <td><span class="stage-badge ${getStageClass(p.stage, 'project')}">${p.stage || 'Brief'}</span></td>
+                <td>${p.deadline || '-'}</td>
+                <td>${p.currency || '₹'}${p.amount || 0}</td>
+                <td class="payment-${(p.paymentStatus || 'unpaid').toLowerCase()}">${p.paymentStatus || 'Unpaid'}</td>
+                <td class="action-buttons">
+                    <button class="icon-btn" onclick="updateProjectStage('${p.id}', '${p.stage}')">🔄</button>
+                    <button class="icon-btn" onclick="updateProjectPayment('${p.id}')">💰</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function renderCustomerList() {
+        const container = document.getElementById('customerList');
+        if (!container) return;
+        
+        if (!window.allCustomers || window.allCustomers.length === 0) {
+            container.innerHTML = '<p style="padding: 20px; text-align: center;">No customers yet. Add your first customer.</p>';
+            return;
+        }
+        
+        container.innerHTML = window.allCustomers.map(c => `
+            <div class="customer-item" onclick="viewCustomerDetails('${c.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${c.name}</strong><br>
+                        <small>📞 ${c.contact || '-'} | ✉️ ${c.email || '-'}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="stage-badge stage-received">${c.totalOrders || 0} orders</span><br>
+                        <small>Outstanding: ₹${c.outstanding || 0}</small>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function renderActivityLog() {
+        const container = document.getElementById('activityList');
+        if (!container) return;
+        
+        if (!window.allActivities || window.allActivities.length === 0) {
+            container.innerHTML = '<p style="padding: 20px;">No activity yet.</p>';
+            return;
+        }
+        
+        container.innerHTML = window.allActivities.map(a => `
+            <div style="padding: 12px; border-bottom: 1px solid #eee;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span><strong>${a.user === 'admin' ? '👑 Admin' : '👤 Cousin'}</strong> · ${a.action}</span>
+                    <small style="color: #999;">${new Date(a.timestamp?.toDate()).toLocaleString()}</small>
+                </div>
+                <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">${a.details || ''}</div>
+            </div>
+        `).join('');
+    }
+    
+    function updateDashboardStats() {
+        if (!window.allOrders) return;
+        
+        const active = window.allOrders.filter(o => o.stage !== 'Delivery').length;
+        const today = new Date().toISOString().slice(0,10);
+        const completedToday = window.allOrders.filter(o => o.stage === 'Delivery' && o.createdAt?.toDate().toISOString().slice(0,10) === today).length;
+        const pendingTotal = window.allOrders.filter(o => o.paymentStatus !== 'Paid').reduce((sum, o) => sum + (o.balance || o.amount || 0), 0);
+        const monthTotal = window.allOrders.filter(o => {
+            const orderDate = o.createdAt?.toDate();
+            const now = new Date();
+            return orderDate && orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+        }).reduce((sum, o) => sum + (o.amount || 0), 0);
+        
         document.getElementById('activeOrders').innerText = active;
         document.getElementById('completedToday').innerText = completedToday;
-        document.getElementById('pendingPayment').innerHTML = `₹${pendingCount * 1000}+`;
-        document.getElementById('monthTotal').innerHTML = `₹${orders.length * 2500}+`;
+        document.getElementById('pendingPayment').innerHTML = `₹${pendingTotal.toLocaleString()}`;
+        document.getElementById('monthTotal').innerHTML = `₹${monthTotal.toLocaleString()}`;
     }
-
-    function updateStage(id) {
-        const stages = ['Received', 'Design', 'Printing', 'QC', 'Delivery'];
-        const order = orders.find(o => o.id === id);
-        if (order) {
-            const currentIndex = stages.indexOf(order.stage);
-            const newStage = stages[currentIndex + 1] || stages[currentIndex];
-            order.stage = newStage;
-            activity.unshift({ timestamp: new Date().toLocaleString(), action: `Updated ${id} to ${newStage}`, user: 'Admin' });
-            saveData();
-            renderOrders();
-        }
+    
+    // ========= CRUD OPERATIONS =========
+    async function generateOrderId() {
+        const snapshot = await db.collection('orders').get();
+        const count = snapshot.size + 1;
+        return `ORD-${String(count).padStart(3, '0')}`;
     }
-
-    function updatePayment(id) {
-        const payments = ['Unpaid', 'Partial', 'Paid'];
-        const order = orders.find(o => o.id === id);
-        if (order) {
-            const currentIndex = payments.indexOf(order.payment);
-            const newPayment = payments[(currentIndex + 1) % payments.length];
-            order.payment = newPayment;
-            activity.unshift({ timestamp: new Date().toLocaleString(), action: `Payment for ${id} → ${newPayment}`, user: 'Admin' });
-            saveData();
-            renderOrders();
-        }
+    
+    async function generateProjectId() {
+        const snapshot = await db.collection('projects').get();
+        const count = snapshot.size + 1;
+        return `PROJ-${String(count).padStart(3, '0')}`;
     }
-
-    function addOrder(customer, items, amount, dueDate) {
-        const newId = `ORD-${String(orders.length + 101).slice(-3)}`;
-        orders.unshift({
-            id: newId, date: new Date().toISOString().slice(0,10), customer, items,
-            stage: 'Received', dueDate, payment: 'Unpaid'
+    
+    document.getElementById('submitOrderBtn').addEventListener('click', async () => {
+        const customerName = document.getElementById('orderCustomer').value;
+        if (!customerName) { alert('Customer name required'); return; }
+        
+        const amount = parseFloat(document.getElementById('orderAmount').value) || 0;
+        const advance = parseFloat(document.getElementById('orderAdvance').value) || 0;
+        const balance = amount - advance;
+        const paymentStatus = advance === 0 ? 'Unpaid' : (advance >= amount ? 'Paid' : 'Partial');
+        const orderId = await generateOrderId();
+        
+        await db.collection('orders').add({
+            orderId, customerName, contact: document.getElementById('orderContact').value,
+            details: document.getElementById('orderDetails').value, quantity: document.getElementById('orderQuantity').value,
+            amount, advance, balance, paymentStatus, stage: 'Received',
+            dueDate: document.getElementById('orderDue').value, fileLink: document.getElementById('orderFileLink').value,
+            createdAt: new Date(), createdBy: currentUser
         });
-        activity.unshift({ timestamp: new Date().toLocaleString(), action: `Created order ${newId} for ${customer}`, user: 'Admin' });
-        saveData();
-        renderOrders();
-    }
-
-    function renderActivity() {
-        const container = document.getElementById('activityList');
-        if (container) {
-            container.innerHTML = activity.slice(0, 50).map(a => 
-                `<div style="padding: 10px; border-bottom: 1px solid #eee;">⏱️ ${a.timestamp} — <strong>${a.user}</strong> · ${a.action}</div>`
-            ).join('');
+        
+        await db.collection('activity').add({
+            timestamp: new Date(), user: currentUser, action: 'Created order', details: `${orderId} for ${customerName}`
+        });
+        
+        // Update customer record
+        const customerRef = await db.collection('customers').where('name', '==', customerName).get();
+        if (customerRef.empty) {
+            await db.collection('customers').add({ name: customerName, contact: document.getElementById('orderContact').value, totalOrders: 1, totalSpent: amount, outstanding: balance, lastOrder: new Date() });
+        } else {
+            const cust = customerRef.docs[0];
+            const data = cust.data();
+            await cust.ref.update({ totalOrders: (data.totalOrders || 0) + 1, totalSpent: (data.totalSpent || 0) + amount, outstanding: (data.outstanding || 0) + balance, lastOrder: new Date() });
         }
-    }
-
+        
+        closeModal('orderModal');
+        document.getElementById('orderCustomer').value = '';
+        document.getElementById('orderDetails').value = '';
+        document.getElementById('orderAmount').value = '';
+        alert('Order created successfully!');
+    });
+    
+    document.getElementById('submitProjectBtn').addEventListener('click', async () => {
+        const clientName = document.getElementById('projectClient').value;
+        if (!clientName) { alert('Client name required'); return; }
+        
+        const amount = parseFloat(document.getElementById('projectAmount').value) || 0;
+        const advance = parseFloat(document.getElementById('projectAdvance').value) || 0;
+        const balance = amount - advance;
+        const paymentStatus = advance === 0 ? 'Unpaid' : (advance >= amount ? 'Paid' : 'Partial');
+        const projectId = await generateProjectId();
+        
+        await db.collection('projects').add({
+            projectId, clientName, contact: document.getElementById('projectContact').value,
+            projectName: document.getElementById('projectName').value, projectType: document.getElementById('projectType').value,
+            amount, advance, balance, paymentStatus, stage: 'Brief',
+            deadline: document.getElementById('projectDeadline').value, fileLink: document.getElementById('projectFileLink').value,
+            currency: '₹', createdAt: new Date(), createdBy: currentUser
+        });
+        
+        await db.collection('activity').add({
+            timestamp: new Date(), user: currentUser, action: 'Created project', details: `${projectId} for ${clientName}`
+        });
+        
+        closeModal('projectModal');
+        document.getElementById('projectClient').value = '';
+        document.getElementById('projectName').value = '';
+        alert('Project created successfully!');
+    });
+    
+    window.updatePrintStage = async (docId, currentStage) => {
+        const currentIndex = PRINT_STAGES.indexOf(currentStage);
+        const newStage = PRINT_STAGES[currentIndex + 1] || currentStage;
+        await db.collection('orders').doc(docId).update({ stage: newStage });
+        await db.collection('activity').add({
+            timestamp: new Date(), user: currentUser, action: 'Updated order stage', details: `to ${newStage}`
+        });
+    };
+    
+    window.updatePrintPayment = async (docId) => {
+        const doc = await db.collection('orders').doc(docId).get();
+        const current = doc.data().paymentStatus;
+        const next = current === 'Unpaid' ? 'Partial' : (current === 'Partial' ? 'Paid' : 'Unpaid');
+        await db.collection('orders').doc(docId).update({ paymentStatus: next });
+        await db.collection('activity').add({
+            timestamp: new Date(), user: currentUser, action: 'Updated payment', details: `to ${next}`
+        });
+    };
+    
+    window.updateProjectStage = async (docId, currentStage) => {
+        const currentIndex = PROJECT_STAGES.indexOf(currentStage);
+        const newStage = PROJECT_STAGES[currentIndex + 1] || currentStage;
+        await db.collection('projects').doc(docId).update({ stage: newStage });
+    };
+    
+    window.updateProjectPayment = async (docId) => {
+        const doc = await db.collection('projects').doc(docId).get();
+        const current = doc.data().paymentStatus;
+        const next = current === 'Unpaid' ? 'Partial' : (current === 'Partial' ? 'Paid' : 'Unpaid');
+        await db.collection('projects').doc(docId).update({ paymentStatus: next });
+    };
+    
+    document.getElementById('submitCustomerBtn').addEventListener('click', async () => {
+        const name = document.getElementById('customerName').value;
+        if (!name) { alert('Customer name required'); return; }
+        await db.collection('customers').add({
+            name, contact: document.getElementById('customerContact').value,
+            email: document.getElementById('customerEmail').value, address: document.getElementById('customerAddress').value,
+            totalOrders: 0, totalSpent: 0, outstanding: 0, createdAt: new Date()
+        });
+        closeModal('customerModal');
+        document.getElementById('customerName').value = '';
+        alert('Customer saved!');
+    });
+    
+    window.viewCustomerDetails = async (customerId) => {
+        const doc = await db.collection('customers').doc(customerId).get();
+        const data = doc.data();
+        const customerOrders = window.allOrders?.filter(o => o.customerName === data.name) || [];
+        alert(`Customer: ${data.name}\nOrders: ${customerOrders.length}\nOutstanding: ₹${data.outstanding || 0}\n\nRecent orders:\n${customerOrders.slice(0,3).map(o => `${o.orderId} - ${o.amount} - ${o.paymentStatus}`).join('\n')}`);
+    };
+    
+    // ========= UI HELPERS =========
     function switchPage(page) {
         document.getElementById('dashboardPage').classList.add('hidden');
-        document.getElementById('ordersPage').classList.add('hidden');
+        document.getElementById('printOrdersPage').classList.add('hidden');
+        document.getElementById('designProjectsPage').classList.add('hidden');
+        document.getElementById('customersPage').classList.add('hidden');
         document.getElementById('activityPage').classList.add('hidden');
-        if (page === 'dashboard') document.getElementById('dashboardPage').classList.remove('hidden');
-        if (page === 'orders') document.getElementById('ordersPage').classList.remove('hidden');
-        if (page === 'activity') { document.getElementById('activityPage').classList.remove('hidden'); renderActivity(); }
+        
+        const pages = { dashboard: 'dashboardPage', printOrders: 'printOrdersPage', designProjects: 'designProjectsPage', customers: 'customersPage', activity: 'activityPage' };
+        if (pages[page]) document.getElementById(pages[page]).classList.remove('hidden');
+        
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
             if (item.dataset.page === page) item.classList.add('active');
         });
-        document.getElementById('pageTitle').innerText = page === 'dashboard' ? 'Dashboard' : page === 'orders' ? 'Orders' : 'Activity';
+        
+        const titles = { dashboard: 'Dashboard', printOrders: 'Print Orders', designProjects: 'Design Projects', customers: 'Customer CRM', activity: 'Activity' };
+        document.getElementById('pageTitle').innerText = titles[page];
     }
-
-    // Event listeners
-    document.getElementById('loginBtn').addEventListener('click', () => {
-        if (document.getElementById('pinInput').value === '1234') {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('appContent').classList.remove('hidden');
-            loadData();
-            renderOrders();
-        } else alert('Wrong PIN');
-    });
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('appContent').classList.add('hidden');
-    });
+    
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', () => switchPage(item.dataset.page));
     });
-    document.getElementById('openOrderModalBtn')?.addEventListener('click', () => document.getElementById('orderModal').style.display = 'flex');
-    document.getElementById('openOrderModalBtn2')?.addEventListener('click', () => document.getElementById('orderModal').style.display = 'flex');
-    document.getElementById('submitOrderBtn').addEventListener('click', () => {
-        const customer = document.getElementById('orderCustomer').value;
-        const items = document.getElementById('orderItems').value;
-        const amount = document.getElementById('orderAmount').value;
-        const dueDate = document.getElementById('orderDue').value;
-        if (customer && items) {
-            addOrder(customer, items, amount, dueDate);
-            closeOrderModal();
-            document.getElementById('orderCustomer').value = '';
-            document.getElementById('orderItems').value = '';
-            document.getElementById('orderAmount').value = '';
-            document.getElementById('orderDue').value = '';
-        } else alert('Please fill customer and items');
+    
+    document.getElementById('openPrintOrderModalBtn').addEventListener('click', () => openModal('orderModal'));
+    document.getElementById('openPrintOrderModalBtn2').addEventListener('click', () => openModal('orderModal'));
+    document.getElementById('openProjectModalBtn').addEventListener('click', () => openModal('projectModal'));
+    document.getElementById('openCustomerModalBtn').addEventListener('click', () => openModal('customerModal'));
+    
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    window.closeModal = (id) => { document.getElementById(id).style.display = 'none'; };
+    
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
     });
-    window.closeOrderModal = () => document.getElementById('orderModal').style.display = 'none';
-    window.updateStage = updateStage;
-    window.updatePayment = updatePayment;
+    
+    window.onclick = (event) => {
+        if (event.target.classList.contains('modal')) event.target.style.display = 'none';
+    };
 </script>
 </body>
 </html>
